@@ -9,27 +9,98 @@ interface WelcomeProps {
 export default function WelcomeScreen({ onNavigateToLogin }: WelcomeProps) {
   return (
     <View style={styles.container}>
-      <View style={styles.logoContainer}>
-        <View style={styles.iconCircle}>
-          <Ionicons name="briefcase" size={64} color="#FF4500" />
-        </View>
-        <Text style={styles.title}>Билеттер онлайн</Text>
-        <Text style={styles.subtitle}>Ұшақтар • Поездар • Автобустар</Text>
+      <View style={styles.topCircle}>
+        <Ionicons name="airplane" size={64} color="#FFFFFF" />
       </View>
-      
-      <TouchableOpacity style={styles.button} onPress={onNavigateToLogin} activeOpacity={0.9}>
-        <Text style={styles.buttonText}>Саяхатты бастау</Text>
+
+      <Text style={styles.brandTitle}>QazTicket</Text>
+      <Text style={styles.subtitle}>
+        Қазақстан бойынша ұшақ, поезд және автобус билеттерін жылдам әрі тиімді брондаңыз
+      </Text>
+
+      <View style={styles.featuresBox}>
+        <View style={styles.featureRow}>
+          <Ionicons name="flash-outline" size={22} color="#FF4500" />
+          <Text style={styles.featureText}>Барлық бағыттар бір қосымшада</Text>
+        </View>
+        <View style={styles.featureRow}>
+          <Ionicons name="cloud-outline" size={22} color="#FF4500" />
+          <Text style={styles.featureText}>Баратын қаланың нақты ауа райы</Text>
+        </View>
+        <View style={styles.featureRow}>
+          <Ionicons name="qr-code-outline" size={22} color="#FF4500" />
+          <Text style={styles.featureText}>Электронды билет әрқашан қалтаңызда</Text>
+        </View>
+      </View>
+
+      <TouchableOpacity style={styles.startBtn} onPress={onNavigateToLogin}>
+        <Text style={styles.startBtnText}>Бастау</Text>
+        <Ionicons name="arrow-forward" size={20} color="#FFF" style={{ marginLeft: 8 }} />
       </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FF4500', justifyContent: 'space-between', paddingVertical: 60, paddingHorizontal: 30, alignItems: 'center' },
-  logoContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  iconCircle: { width: 120, height: 120, borderRadius: 60, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-  title: { fontSize: 32, fontWeight: 'bold', color: '#fff', textAlign: 'center' },
-  subtitle: { fontSize: 16, color: '#FFE4E1', marginTop: 8, fontWeight: '500' },
-  button: { backgroundColor: '#fff', width: '90%', paddingVertical: 16, borderRadius: 30, alignItems: 'center', elevation: 5 },
-  buttonText: { color: '#FF4500', fontSize: 16, fontWeight: '700' }
+  container: {
+    flex: 1,
+    backgroundColor: '#111827',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 28,
+  },
+  topCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#FF4500',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  brandTitle: {
+    fontSize: 36,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 12,
+  },
+  subtitle: {
+    fontSize: 15,
+    color: '#9CA3AF',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 32,
+  },
+  featuresBox: {
+    width: '100%',
+    backgroundColor: '#1F2937',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 36,
+    gap: 14,
+  },
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  featureText: {
+    color: '#F3F4F6',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 12,
+  },
+  startBtn: {
+    flexDirection: 'row',
+    backgroundColor: '#FF4500',
+    width: '100%',
+    paddingVertical: 16,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  startBtnText: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '700',
+  },
 });

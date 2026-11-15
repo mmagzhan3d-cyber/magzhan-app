@@ -8,15 +8,31 @@ interface ResetProps {
 export default function ResetPasswordScreen({ onBack }: ResetProps) {
   const [email, setEmail] = useState('');
 
+  const handleSendLink = () => {
+    if (!email.includes('@')) {
+      Alert.alert('Қате', 'Жарамды Email енгізіңіз!');
+      return;
+    }
+    Alert.alert('Сәтті', `${email} поштасына қалпына келтіру сілтемесі жіберілді!`);
+    onBack();
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Құпия сөзді қалпына келтіру</Text>
-      <TextInput style={styles.input} placeholder="Email поштаңызды енгізіңіз" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
-      
-      <TouchableOpacity style={styles.button} onPress={() => { Alert.alert('Сәтті', 'Сілтеме жіберілді'); onBack(); }}>
+      <TextInput
+        style={styles.input}
+        placeholder="Email поштаңызды енгізіңіз"
+        value={email}
+        onChangeText={setEmail}
+        keyboardType="email-address"
+        autoCapitalize="none"
+      />
+
+      <TouchableOpacity style={styles.button} onPress={handleSendLink}>
         <Text style={styles.buttonText}>Сілтеме жіберу</Text>
       </TouchableOpacity>
-      
+
       <TouchableOpacity style={styles.backButton} onPress={onBack}>
         <Text style={styles.backButtonText}>Артқа</Text>
       </TouchableOpacity>
@@ -31,5 +47,5 @@ const styles = StyleSheet.create({
   button: { backgroundColor: '#FF4500', padding: 16, borderRadius: 12, alignItems: 'center', marginBottom: 12 },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   backButton: { padding: 10, alignItems: 'center' },
-  backButtonText: { color: '#9CA3AF' }
+  backButtonText: { color: '#9CA3AF' },
 });

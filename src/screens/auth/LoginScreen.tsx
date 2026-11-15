@@ -1,29 +1,60 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator, Alert } from 'react-native';
+import { apiLoginUser } from '../../services/api';
 
 interface LoginProps {
-  onLoginSuccess: () => void;
+  onLoginSuccess: (email: string) => void;
   onForgotPassword: () => void;
   onRegister: () => void;
   onBack: () => void;
 }
 
 export default function LoginScreen({ onLoginSuccess, onForgotPassword, onRegister, onBack }: LoginProps) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('magzhan@mail.kz');
+  const [password, setPassword] = useState('123456');
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    setLoading(true);
+    try {
+      const res = await apiLoginUser(email.trim(), password);
+      onLoginSuccess(res.userEmail);
+    } catch (err: any) {
+      Alert.alert('Кіру қатесі', err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Жүйеге кіру</Text>
-      <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
-      <TextInput style={styles.input} placeholder="Құпия сөз" value={password} onChangeText={setPassword} secureTextEntry />
-      
+      <TextInput
+        style={styles.input}
+        placeholder="Email"
+        value={email}
+        onChangeText={setEmail}
+        keyboardType="email-address"
+        autoCapitalize="none"
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Құпия сөз"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+      />
+
       <TouchableOpacity onPress={onForgotPassword} style={styles.linkContainer}>
         <Text style={styles.linkText}>Құпия сөзді ұмыттыңыз ба?</Text>
       </TouchableOpacity>
-      
-      <TouchableOpacity style={styles.button} onPress={onLoginSuccess}>
-        <Text style={styles.buttonText}>Кіру</Text>
+
+      <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
+        {loading ? (
+          <ActivityIndicator color="#FFF" />
+        ) : (
+          <Text style={styles.buttonText}>Кіру</Text>
+        )}
       </TouchableOpacity>
 
       <TouchableOpacity onPress={onRegister} style={styles.registerLink}>
@@ -48,5 +79,5 @@ const styles = StyleSheet.create({
   registerLink: { alignItems: 'center', marginVertical: 10 },
   registerText: { color: '#6B7280', fontSize: 14 },
   backButton: { padding: 10, alignItems: 'center' },
-  backButtonText: { color: '#9CA3AF' }
+  backButtonText: { color: '#9CA3AF' },
 });
