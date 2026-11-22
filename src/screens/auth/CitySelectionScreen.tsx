@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, TextInput, FlatList } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, TextInput, FlatList, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { CITIES_DATABASE } from '../../services/api';
+import { fetchCities, CityInfo } from '../../services/api';
 
 interface Props {
   type: 'from' | 'to';
@@ -12,8 +12,28 @@ interface Props {
 
 export default function CitySelectionScreen({ type, currentSelection, onSelect, onBack }: Props) {
   const [search, setSearch] = useState('');
+  const [cities, setCities] = useState<CityInfo[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredCities = CITIES_DATABASE.filter(
+  // API арқылы Қазақстанның әуежайы бар қалаларын жүктеу
+  useEffect(() => {
+    let active = true;
+    fetchCities()
+      .then((data) => {
+        if (active) {
+          setCities(data || []);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const filteredCities = cities.filter(
     (c) =>
       c.name.toLowerCase().includes(search.toLowerCase()) ||
       c.code.toLowerCase().includes(search.toLowerCase())
@@ -46,32 +66,39 @@ export default function CitySelectionScreen({ type, currentSelection, onSelect, 
         )}
       </View>
 
-      <FlatList
-        data={filteredCities}
-        keyExtractor={(item) => item.code}
-        showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => {
-          const isSelected = item.name === currentSelection;
-          return (
-            <TouchableOpacity
-              style={[styles.cityItem, isSelected && styles.selectedCityItem]}
-              onPress={() => onSelect(item.name)}
-            >
-              <View style={styles.cityRow}>
-                <Ionicons name="location-outline" size={20} color={isSelected ? '#FF4500' : '#6B7280'} />
-                <View style={{ marginLeft: 12 }}>
-                  <Text style={[styles.cityName, isSelected && styles.selectedCityName]}>{item.name}</Text>
-                  <Text style={styles.regionText}>{item.region}</Text>
+      {loading ? (
+        <ActivityIndicator size="large" color="#FF4500" style={{ marginTop: 40 }} />
+      ) : (
+        <FlatList
+          data={filteredCities}
+          keyExtractor={(item, index) => `${item.code}-${index}`}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <Text style={styles.emptyText}>Қала табылмады</Text>
+          }
+          renderItem={({ item }) => {
+            const isSelected = item.name === currentSelection;
+            return (
+              <TouchableOpacity
+                style={[styles.cityItem, isSelected && styles.selectedCityItem]}
+                onPress={() => onSelect(item.name)}
+              >
+                <View style={styles.cityRow}>
+                  <Ionicons name="location-outline" size={20} color={isSelected ? '#FF4500' : '#6B7280'} />
+                  <View style={{ marginLeft: 12 }}>
+                    <Text style={[styles.cityName, isSelected && styles.selectedCityName]}>{item.name}</Text>
+                    <Text style={styles.regionText}>{item.region}</Text>
+                  </View>
                 </View>
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={styles.iataCode}>{item.code}</Text>
-                {isSelected && <Ionicons name="checkmark" size={20} color="#FF4500" style={{ marginLeft: 8 }} />}
-              </View>
-            </TouchableOpacity>
-          );
-        }}
-      />
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={styles.iataCode}>{item.code}</Text>
+                  {isSelected && <Ionicons name="checkmark" size={20} color="#FF4500" style={{ marginLeft: 8 }} />}
+                </View>
+              </TouchableOpacity>
+            );
+          }}
+        />
+      )}
     </View>
   );
 }
@@ -90,4 +117,5 @@ const styles = StyleSheet.create({
   regionText: { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
   iataCode: { fontSize: 13, fontWeight: '700', color: '#6B7280', backgroundColor: '#F3F4F6', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   selectedCityName: { color: '#FF4500', fontWeight: '700' },
+  emptyText: { textAlign: 'center', color: '#9CA3AF', marginTop: 30, fontSize: 15 },
 });

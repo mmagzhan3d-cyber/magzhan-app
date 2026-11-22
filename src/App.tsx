@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { SafeAreaView, StyleSheet, StatusBar } from 'react-native';
+import { View, StyleSheet, StatusBar, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import WelcomeScreen from './screens/auth/WelcomeScreen';
@@ -98,17 +98,27 @@ export default function App() {
     setCurrentScreen('home');
   };
 
-  const handleStartBooking = (details: BookingDetails) => {
-    setBookingDetails(details);
+  const handleStartBooking = (details: any) => {
+    const safePrice = Number(details?.pricePerTicket ?? details?.price ?? 0);
+    setBookingDetails({
+      ...details,
+      transport: details?.transport || 'plane',
+      from: details?.from || fromCity,
+      to: details?.to || toCity,
+      dateStr: details?.dateStr || 'Жақын рейс',
+      pricePerTicket: isNaN(safePrice) ? 0 : safePrice,
+      totalPrice: isNaN(safePrice) ? 0 : safePrice,
+    });
     setCurrentScreen('passengers');
   };
 
   const handleConfirmPassengers = (passengers: any[], calculatedTotal: number) => {
     if (bookingDetails) {
+      const safeTotal = Number(calculatedTotal || 0);
       setBookingDetails({
         ...bookingDetails,
         passengers,
-        totalPrice: calculatedTotal,
+        totalPrice: isNaN(safeTotal) ? 0 : safeTotal,
       });
       setCurrentScreen('seats');
     }
@@ -116,10 +126,11 @@ export default function App() {
 
   const handleConfirmSeats = (seats: string[], totalPrice: number) => {
     if (bookingDetails) {
+      const safeTotal = Number(totalPrice ?? bookingDetails.totalPrice ?? 0);
       setBookingDetails({
         ...bookingDetails,
-        selectedSeats: seats,
-        totalPrice,
+        selectedSeats: seats || [],
+        totalPrice: isNaN(safeTotal) ? 0 : safeTotal,
       });
       setCurrentScreen('payment');
     }
@@ -150,8 +161,8 @@ export default function App() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle={currentScreen === 'welcome' ? 'light-content' : 'dark-content'} />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
 
       {currentScreen === 'welcome' && (
         <WelcomeScreen onNavigateToLogin={() => setCurrentScreen('login')} />
@@ -244,26 +255,26 @@ export default function App() {
         />
       )}
 
-      {currentScreen === 'passengers' && (
+      {currentScreen === 'passengers' && bookingDetails && (
         <PassengersScreen
-          bookingDetails={bookingDetails!}
+          bookingDetails={bookingDetails}
           defaultPassenger={userProfile}
           onNext={handleConfirmPassengers}
           onBack={() => setCurrentScreen('home')}
         />
       )}
 
-      {currentScreen === 'seats' && (
+      {currentScreen === 'seats' && bookingDetails && (
         <SeatSelectionScreen
-          bookingDetails={bookingDetails!}
+          bookingDetails={bookingDetails}
           onNext={handleConfirmSeats}
           onBack={() => setCurrentScreen('passengers')}
         />
       )}
 
-      {currentScreen === 'payment' && (
+      {currentScreen === 'payment' && bookingDetails && (
         <PaymentScreen
-          bookingDetails={bookingDetails!}
+          bookingDetails={bookingDetails}
           onSuccess={handlePaymentSuccess}
           onBack={() => setCurrentScreen('seats')}
         />
@@ -277,13 +288,14 @@ export default function App() {
           onBackToHome={() => setCurrentScreen('home')}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#061428',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 44,
   },
 });

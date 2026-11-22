@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BookingDetails } from '../../App';
+import { TRANSPORT_THEMES } from '../../theme';
+
 interface Props {
   bookingDetails: BookingDetails;
   onNext: (seats: string[], totalPrice: number) => void;
@@ -9,10 +11,12 @@ interface Props {
 }
 
 export default function SeatSelectionScreen({ bookingDetails, onNext, onBack }: Props) {
-  const requiredSeats = bookingDetails.passengers?.length || 1;
+  const activeTheme = TRANSPORT_THEMES[bookingDetails?.transport || 'plane'];
+
+  const requiredSeats = bookingDetails?.passengers?.length || 1;
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
 
-  const occupiedSeats = bookingDetails.occupiedSeats || ['A2', 'B4', 'C1', 'D5', 'A6'];
+  const occupiedSeats = bookingDetails?.occupiedSeats || ['A2', 'B4', 'C1', 'D5', 'A6'];
   const rows = ['A', 'B', 'C', 'D'];
   const numbers = Array.from({ length: 10 }, (_, i) => i + 1);
 
@@ -30,38 +34,48 @@ export default function SeatSelectionScreen({ bookingDetails, onNext, onBack }: 
     }
   };
 
-  const totalPrice = bookingDetails.totalPrice || requiredSeats * bookingDetails.pricePerTicket;
+  const unitPrice = Number(bookingDetails?.pricePerTicket || 0);
+  const rawTotal = Number(bookingDetails?.totalPrice ?? requiredSeats * unitPrice);
+  const totalPrice = isNaN(rawTotal) ? 0 : rawTotal;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: activeTheme.background }]}>
+      <View pointerEvents="none" style={[styles.glowTop, { backgroundColor: activeTheme.glowColor }]} />
+
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack}>
-          <Ionicons name="chevron-back" size={24} color="#111827" />
+        <TouchableOpacity
+          style={[styles.backBtn, { backgroundColor: activeTheme.cardBg, borderColor: activeTheme.border }]}
+          onPress={onBack}
+        >
+          <Ionicons name="chevron-back" size={22} color={activeTheme.textMain} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>
+        <Text style={[styles.headerTitle, { color: activeTheme.textMain }]}>
           Орын таңдау ({selectedSeats.length}/{requiredSeats})
         </Text>
-        <View style={{ width: 24 }} />
+        <View style={{ width: 40 }} />
       </View>
 
-      <View style={styles.legendRow}>
+      <View style={[styles.legendRow, { backgroundColor: activeTheme.cardBg, borderColor: activeTheme.border }]}>
         <View style={styles.legendItem}>
-          <View style={[styles.legendBox, { backgroundColor: '#FFF', borderColor: '#D1D5DB', borderWidth: 1 }]} />
-          <Text style={styles.legendText}>Бос</Text>
+          <View style={[styles.legendBox, { backgroundColor: activeTheme.cardElevated, borderColor: activeTheme.border, borderWidth: 1 }]} />
+          <Text style={[styles.legendText, { color: activeTheme.textSecondary }]}>Бос</Text>
         </View>
         <View style={styles.legendItem}>
-          <View style={[styles.legendBox, { backgroundColor: '#FF4500' }]} />
-          <Text style={styles.legendText}>Таңдалған</Text>
+          <View style={[styles.legendBox, { backgroundColor: activeTheme.primary }]} />
+          <Text style={[styles.legendText, { color: activeTheme.textSecondary }]}>Таңдалған</Text>
         </View>
         <View style={styles.legendItem}>
-          <View style={[styles.legendBox, { backgroundColor: '#E5E7EB' }]} />
-          <Text style={styles.legendText}>Бос емес</Text>
+          <View style={[styles.legendBox, { backgroundColor: 'rgba(255,255,255,0.08)' }]} />
+          <Text style={[styles.legendText, { color: activeTheme.textMuted }]}>Бос емес</Text>
         </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.cabin} showsVerticalScrollIndicator={false}>
-        <View style={styles.frontIndicator}>
-          <Text style={styles.frontText}>Алдыңғы жағы ({bookingDetails.carrier || 'Салон басы'})</Text>
+        <View style={[styles.frontIndicator, { backgroundColor: activeTheme.cardElevated, borderColor: activeTheme.border }]}>
+          <Ionicons name={activeTheme.icon} size={18} color={activeTheme.primary} />
+          <Text style={[styles.frontText, { color: activeTheme.textSecondary }]}>
+            Алдыңғы жағы ({bookingDetails?.carrier || 'Салон басы'})
+          </Text>
         </View>
 
         {numbers.map((num) => (
@@ -78,12 +92,35 @@ export default function SeatSelectionScreen({ bookingDetails, onNext, onBack }: 
                     disabled={isOccupied}
                     style={[
                       styles.seat,
-                      isOccupied && styles.occupiedSeat,
-                      isSelected && styles.selectedSeat,
+                      {
+                        backgroundColor: isSelected
+                          ? activeTheme.primary
+                          : isOccupied
+                          ? 'rgba(255,255,255,0.06)'
+                          : activeTheme.cardBg,
+                        borderColor: isSelected
+                          ? activeTheme.primary
+                          : isOccupied
+                          ? 'transparent'
+                          : activeTheme.border,
+                      },
                     ]}
                     onPress={() => handleSeatPress(seatCode)}
                   >
-                    <Text style={[styles.seatText, isSelected && styles.selectedSeatText]}>{seatCode}</Text>
+                    <Text
+                      style={[
+                        styles.seatText,
+                        {
+                          color: isSelected
+                            ? activeTheme.primaryText
+                            : isOccupied
+                            ? activeTheme.textMuted
+                            : activeTheme.textMain,
+                        },
+                      ]}
+                    >
+                      {seatCode}
+                    </Text>
                   </TouchableOpacity>
                 </React.Fragment>
               );
@@ -92,14 +129,26 @@ export default function SeatSelectionScreen({ bookingDetails, onNext, onBack }: 
         ))}
       </ScrollView>
 
-      <View style={styles.footer}>
-        <Text style={styles.totalText}>Жалпы сомасы: {totalPrice.toLocaleString()} ₸</Text>
+      <View style={[styles.footer, { backgroundColor: activeTheme.cardBg, borderColor: activeTheme.border }]}>
+        <Text style={[styles.totalText, { color: activeTheme.textMain }]}>
+          Жалпы сомасы: <Text style={{ color: activeTheme.primary }}>{(totalPrice || 0).toLocaleString()} ₸</Text>
+        </Text>
         <TouchableOpacity
-          style={[styles.confirmBtn, selectedSeats.length !== requiredSeats && { backgroundColor: '#9CA3AF' }]}
+          style={[
+            styles.confirmBtn,
+            { backgroundColor: selectedSeats.length === requiredSeats ? activeTheme.primary : activeTheme.cardElevated },
+          ]}
           disabled={selectedSeats.length !== requiredSeats}
           onPress={() => onNext(selectedSeats, totalPrice)}
         >
-          <Text style={styles.confirmBtnText}>Төлемге өту</Text>
+          <Text
+            style={[
+              styles.confirmBtnText,
+              { color: selectedSeats.length === requiredSeats ? activeTheme.primaryText : activeTheme.textMuted },
+            ]}
+          >
+            Төлемге өту
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -107,24 +156,23 @@ export default function SeatSelectionScreen({ bookingDetails, onNext, onBack }: 
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB', padding: 24 },
+  container: { flex: 1, padding: 20, overflow: 'hidden' },
+  glowTop: { position: 'absolute', width: 280, height: 280, borderRadius: 140, top: -80, right: -80 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
-  headerTitle: { fontSize: 18, fontWeight: '700' },
-  legendRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 12, backgroundColor: '#FFF', padding: 10, borderRadius: 12 },
+  backBtn: { width: 40, height: 40, borderRadius: 12, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { fontSize: 18, fontWeight: '800' },
+  legendRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 12, padding: 12, borderRadius: 14, borderWidth: 1 },
   legendItem: { flexDirection: 'row', alignItems: 'center' },
   legendBox: { width: 16, height: 16, borderRadius: 4, marginRight: 6 },
-  legendText: { fontSize: 12, color: '#4B5563', fontWeight: '600' },
+  legendText: { fontSize: 12, fontWeight: '700' },
   cabin: { alignItems: 'center', paddingVertical: 14 },
-  frontIndicator: { backgroundColor: '#E5E7EB', padding: 8, borderRadius: 8, width: '100%', alignItems: 'center', marginBottom: 22 },
-  frontText: { color: '#6B7280', fontWeight: '600', fontSize: 13 },
+  frontIndicator: { flexDirection: 'row', gap: 8, padding: 10, borderRadius: 12, borderWidth: 1, width: '100%', justifyContent: 'center', alignItems: 'center', marginBottom: 22 },
+  frontText: { fontWeight: '700', fontSize: 13 },
   row: { flexDirection: 'row', marginBottom: 12, justifyContent: 'center' },
-  seat: { width: 48, height: 48, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginHorizontal: 5 },
-  occupiedSeat: { backgroundColor: '#E5E7EB', borderColor: '#E5E7EB' },
-  selectedSeat: { backgroundColor: '#FF4500', borderColor: '#FF4500' },
-  seatText: { fontSize: 12, fontWeight: '600', color: '#4B5563' },
-  selectedSeatText: { color: '#FFF' },
-  footer: { marginTop: 'auto', backgroundColor: '#FFF', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#E5E7EB' },
-  totalText: { fontSize: 16, fontWeight: '700', marginBottom: 12, textAlign: 'center' },
-  confirmBtn: { backgroundColor: '#FF4500', padding: 16, borderRadius: 12, alignItems: 'center' },
-  confirmBtnText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
+  seat: { width: 48, height: 48, borderWidth: 1, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginHorizontal: 5 },
+  seatText: { fontSize: 12, fontWeight: '800' },
+  footer: { marginTop: 'auto', padding: 16, borderRadius: 18, borderWidth: 1 },
+  totalText: { fontSize: 16, fontWeight: '800', marginBottom: 12, textAlign: 'center' },
+  confirmBtn: { padding: 16, borderRadius: 14, alignItems: 'center' },
+  confirmBtnText: { fontSize: 16, fontWeight: '800' },
 });

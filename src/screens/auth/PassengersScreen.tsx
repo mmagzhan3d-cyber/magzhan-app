@@ -2,173 +2,239 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, TextInput, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BookingDetails, UserProfile } from '../../App';
+import { TRANSPORT_THEMES } from '../../theme';
 
 interface Props {
   bookingDetails: BookingDetails;
   defaultPassenger: UserProfile;
-  onNext: (passengers: any[], calculatedTotal: number) => void;
+  onNext: (passengers: { name: string; document: string; type: 'adult' | 'child' }[], totalPrice: number) => void;
   onBack: () => void;
 }
 
 export default function PassengersScreen({ bookingDetails, defaultPassenger, onNext, onBack }: Props) {
-  const [adults, setAdults] = useState(1);
-  const [children, setChildren] = useState(0);
+  const activeTheme = TRANSPORT_THEMES[bookingDetails?.transport || 'plane'];
 
-  const totalCount = adults + children;
-  const [passengerDetails, setPassengerDetails] = useState<Array<{ name: string; document: string }>>([
+  const [passengers, setPassengers] = useState<{ name: string; document: string; type: 'adult' | 'child' }[]>([
     {
       name: defaultPassenger?.fullName || '',
       document: defaultPassenger?.iin || '',
+      type: 'adult',
     },
   ]);
 
-  const updateCounts = (type: 'adult' | 'child', operation: '+' | '-') => {
-    let newAdults = adults;
-    let newChildren = children;
+  const unitPrice = Number(bookingDetails?.pricePerTicket || 0);
+  const childPrice = Math.round(unitPrice * 0.5);
 
-    if (type === 'adult') {
-      newAdults = operation === '+' ? adults + 1 : Math.max(1, adults - 1);
-    } else {
-      newChildren = operation === '+' ? children + 1 : Math.max(0, children - 1);
+  const addPassenger = (type: 'adult' | 'child') => {
+    if (passengers.length >= 6) {
+      Alert.alert('Шектеу', 'Бір ретте ең көбі 6 жолаушы қосуға болады.');
+      return;
     }
-
-    setAdults(newAdults);
-    setChildren(newChildren);
-
-    const newTotal = newAdults + newChildren;
-    setPassengerDetails(
-      Array.from({ length: newTotal }, (_, i) => passengerDetails[i] || { name: '', document: '' })
-    );
+    setPassengers([...passengers, { name: '', document: '', type }]);
   };
 
-  const handleInputChange = (index: number, field: 'name' | 'document', value: string) => {
-    const updated = [...passengerDetails];
-    updated[index] = { ...updated[index], [field]: value };
-    setPassengerDetails(updated);
+  const removePassenger = (index: number) => {
+    if (passengers.length <= 1) return;
+    setPassengers(passengers.filter((_, i) => i !== index));
   };
 
-  const calculatedTotal =
-    adults * bookingDetails.pricePerTicket +
-    children * Math.round(bookingDetails.pricePerTicket * 0.5);
+  const updatePassenger = (index: number, field: 'name' | 'document', value: string) => {
+    const updated = [...passengers];
+    updated[index][field] = value;
+    setPassengers(updated);
+  };
+
+  const totalPrice = passengers.reduce((sum, p) => {
+    const price = p.type === 'child' ? childPrice : unitPrice;
+    return sum + (isNaN(price) ? 0 : price);
+  }, 0);
 
   const handleContinue = () => {
-    for (let i = 0; i < totalCount; i++) {
-      if (!passengerDetails[i]?.name.trim() || passengerDetails[i]?.document.trim().length < 6) {
-        Alert.alert('Қате', `Жолаушы №${i + 1} аты-жөні мен құжат нөмірін дұрыс толтырыңыз!`);
+    for (let i = 0; i < passengers.length; i++) {
+      if (!passengers[i].name.trim() || !passengers[i].document.trim()) {
+        Alert.alert('Қате', `${i + 1}-жолаушының аты-жөні мен ЖСН/құжат нөмірін толтырыңыз!`);
         return;
       }
     }
-
-    const fullData = passengerDetails.map((p, idx) => ({
-      ...p,
-      type: idx < adults ? 'adult' : 'child',
-    }));
-    onNext(fullData, calculatedTotal);
+    onNext(passengers, totalPrice);
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: 24 }}>
+    <View style={[styles.container, { backgroundColor: activeTheme.background }]}>
+      <View pointerEvents="none" style={[styles.glowTop, { backgroundColor: activeTheme.glowColor }]} />
+
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack}>
-          <Ionicons name="chevron-back" size={24} color="#111827" />
+        <TouchableOpacity
+          style={[styles.backBtn, { backgroundColor: activeTheme.cardBg, borderColor: activeTheme.border }]}
+          onPress={onBack}
+        >
+          <Ionicons name="chevron-back" size={22} color={activeTheme.textMain} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Жолаушылар мәліметі</Text>
-        <View style={{ width: 24 }} />
+        <Text style={[styles.headerTitle, { color: activeTheme.textMain }]}>Жолаушылар ({passengers.length})</Text>
+        <View style={{ width: 40 }} />
       </View>
 
-      <View style={styles.counterCard}>
-        <View style={styles.counterRow}>
-          <View>
-            <Text style={styles.cLabel}>Ересектер</Text>
-            <Text style={styles.cSub}>12 жастан жоғары (100% баға)</Text>
-          </View>
-          <View style={styles.actions}>
-            <TouchableOpacity onPress={() => updateCounts('adult', '-')} style={styles.minusBtn}>
-              <Ionicons name="remove" size={18} color="#111827" />
-            </TouchableOpacity>
-            <Text style={styles.countText}>{adults}</Text>
-            <TouchableOpacity onPress={() => updateCounts('adult', '+')} style={styles.plusBtn}>
-              <Ionicons name="add" size={18} color="#FFF" />
-            </TouchableOpacity>
-          </View>
+      <View style={[styles.routeSummary, { backgroundColor: activeTheme.cardBg, borderColor: activeTheme.border }]}>
+        <View style={styles.routeTop}>
+          <Ionicons name={activeTheme.icon} size={18} color={activeTheme.primary} />
+          <Text style={[styles.routeTitle, { color: activeTheme.textMain }]} numberOfLines={1}>
+            {bookingDetails?.from} — {bookingDetails?.to}
+          </Text>
         </View>
-
-        <View style={styles.divider} />
-
-        <View style={styles.counterRow}>
-          <View>
-            <Text style={styles.cLabel}>Балалар</Text>
-            <Text style={styles.cSub}>0 - 12 жас (50% жеңілдік)</Text>
-          </View>
-          <View style={styles.actions}>
-            <TouchableOpacity onPress={() => updateCounts('child', '-')} style={styles.minusBtn}>
-              <Ionicons name="remove" size={18} color="#111827" />
-            </TouchableOpacity>
-            <Text style={styles.countText}>{children}</Text>
-            <TouchableOpacity onPress={() => updateCounts('child', '+')} style={styles.plusBtn}>
-              <Ionicons name="add" size={18} color="#FFF" />
-            </TouchableOpacity>
-          </View>
-        </View>
+        <Text style={[styles.routeSub, { color: activeTheme.textSecondary }]}>{bookingDetails?.dateStr}</Text>
       </View>
 
-      <Text style={styles.sectionTitle}>Құжат мәліметтері</Text>
-      {Array.from({ length: totalCount }).map((_, index) => (
-        <View key={index} style={styles.passCard}>
-          <View style={styles.passHeaderRow}>
-            <Ionicons name="person-outline" size={16} color="#FF4500" />
-            <Text style={styles.passNumber}>
-              Жолаушы №{index + 1} ({index < adults ? 'Ересек' : 'Бала'})
-            </Text>
+      {/* ЕРЕСЕК / БАЛА ҚОСУ БАТЫРМАЛАРЫ (СӨЗДЕРІ БАТЫРМАДАН АСПАЙТЫН ЕТІП ЖАСАЛҒАН) */}
+      <View style={styles.addRow}>
+        <TouchableOpacity
+          style={[styles.addBtn, { backgroundColor: activeTheme.cardElevated, borderColor: activeTheme.primary }]}
+          onPress={() => addPassenger('adult')}
+          activeOpacity={0.8}
+        >
+          <View style={styles.addBtnTop}>
+            <Ionicons name="person-add" size={15} color={activeTheme.primary} />
+            <Text style={[styles.addBtnTitle, { color: activeTheme.textMain }]}>+ Ересек</Text>
           </View>
-          <TextInput
-            style={styles.input}
-            placeholder="Толық аты-жөні (ФИО)"
-            value={passengerDetails[index]?.name || ''}
-            onChangeText={(v) => handleInputChange(index, 'name', v)}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="ЖСН (ИИН) немесе Құжат нөмірі"
-            value={passengerDetails[index]?.document || ''}
-            onChangeText={(v) => handleInputChange(index, 'document', v)}
-          />
-        </View>
-      ))}
+          <Text style={[styles.addBtnPrice, { color: activeTheme.primary }]}>
+            {unitPrice.toLocaleString()} ₸
+          </Text>
+        </TouchableOpacity>
 
-      <View style={styles.totalBox}>
-        <Text style={styles.totalLabel}>Жалпы есептелген сома:</Text>
-        <Text style={styles.totalValue}>{calculatedTotal.toLocaleString()} ₸</Text>
+        <TouchableOpacity
+          style={[styles.addBtn, { backgroundColor: activeTheme.cardElevated, borderColor: activeTheme.border }]}
+          onPress={() => addPassenger('child')}
+          activeOpacity={0.8}
+        >
+          <View style={styles.addBtnTop}>
+            <Ionicons name="happy" size={15} color={activeTheme.primary} />
+            <Text style={[styles.addBtnTitle, { color: activeTheme.textMain }]}>+ Бала (-50%)</Text>
+          </View>
+          <Text style={[styles.addBtnPrice, { color: activeTheme.primary }]}>
+            {childPrice.toLocaleString()} ₸
+          </Text>
+        </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={styles.nextBtn} onPress={handleContinue}>
-        <Text style={styles.nextBtnText}>Орын таңдауға өту</Text>
-      </TouchableOpacity>
-    </ScrollView>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 110 }}>
+        {passengers.map((p, index) => (
+          <View
+            key={index}
+            style={[styles.passengerCard, { backgroundColor: activeTheme.cardBg, borderColor: activeTheme.border }]}
+          >
+            <View style={styles.cardHeader}>
+              <View style={styles.badgeRow}>
+                <Ionicons name="person" size={15} color={activeTheme.primary} />
+                <Text style={[styles.cardTitle, { color: activeTheme.textMain }]} numberOfLines={1}>
+                  {index + 1}-жолаушы • {p.type === 'adult' ? 'Ересек' : 'Бала (50%)'}
+                </Text>
+              </View>
+              {passengers.length > 1 && (
+                <TouchableOpacity style={styles.trashBtn} onPress={() => removePassenger(index)}>
+                  <Ionicons name="trash-outline" size={18} color="#F87171" />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  backgroundColor: activeTheme.background,
+                  borderColor: activeTheme.border,
+                  color: activeTheme.textMain,
+                },
+              ]}
+              placeholder="Аты-жөні (Толық)"
+              placeholderTextColor={activeTheme.textMuted}
+              value={p.name}
+              onChangeText={(val) => updatePassenger(index, 'name', val)}
+            />
+
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  backgroundColor: activeTheme.background,
+                  borderColor: activeTheme.border,
+                  color: activeTheme.textMain,
+                  marginBottom: 0,
+                },
+              ]}
+              placeholder="ЖСН немесе Паспорт нөмірі"
+              placeholderTextColor={activeTheme.textMuted}
+              keyboardType="numeric"
+              maxLength={12}
+              value={p.document}
+              onChangeText={(val) => updatePassenger(index, 'document', val)}
+            />
+          </View>
+        ))}
+      </ScrollView>
+
+      <View style={[styles.footer, { backgroundColor: activeTheme.tabBarBg, borderColor: activeTheme.border }]}>
+        <View style={{ flex: 1, paddingRight: 10 }}>
+          <Text style={[styles.totalLabel, { color: activeTheme.textSecondary }]}>Жалпы сомасы:</Text>
+          <Text style={[styles.totalValue, { color: activeTheme.primary }]} numberOfLines={1}>
+            {(totalPrice || 0).toLocaleString()} ₸
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={[styles.nextBtn, { backgroundColor: activeTheme.primary }]}
+          onPress={handleContinue}
+        >
+          <Text style={[styles.nextBtnText, { color: activeTheme.primaryText }]}>Орын таңдау</Text>
+          <Ionicons name="arrow-forward" size={18} color={activeTheme.primaryText} />
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: '#111827' },
-  counterCard: { backgroundColor: '#FFF', padding: 20, borderRadius: 16, borderWidth: 1, borderColor: '#E5E7EB', marginBottom: 20 },
-  counterRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  cLabel: { fontSize: 16, fontWeight: '600', color: '#111827' },
-  cSub: { fontSize: 12, color: '#9CA3AF' },
-  actions: { flexDirection: 'row', alignItems: 'center' },
-  minusBtn: { backgroundColor: '#E5E7EB', width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
-  plusBtn: { backgroundColor: '#FF4500', width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
-  countText: { marginHorizontal: 15, fontSize: 16, fontWeight: '700' },
-  divider: { height: 1, backgroundColor: '#E5E7EB', marginVertical: 15 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 12 },
-  passCard: { backgroundColor: '#FFF', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB', marginBottom: 14 },
-  passHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
-  passNumber: { fontSize: 14, fontWeight: '600', color: '#FF4500' },
-  input: { borderBottomWidth: 1, borderColor: '#E5E7EB', paddingVertical: 8, marginBottom: 12, fontSize: 15 },
-  totalBox: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FFF', padding: 16, borderRadius: 12, marginTop: 6, borderWidth: 1, borderColor: '#E5E7EB' },
-  totalLabel: { fontSize: 14, color: '#6B7280', fontWeight: '600' },
-  totalValue: { fontSize: 18, color: '#FF4500', fontWeight: '800' },
-  nextBtn: { backgroundColor: '#FF4500', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 16, marginBottom: 30 },
-  nextBtnText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
+  container: { flex: 1, padding: 20, overflow: 'hidden' },
+  glowTop: { position: 'absolute', width: 280, height: 280, borderRadius: 140, top: -80, right: -80 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  backBtn: { width: 40, height: 40, borderRadius: 12, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { fontSize: 19, fontWeight: '800' },
+  routeSummary: { padding: 14, borderRadius: 16, borderWidth: 1, marginBottom: 14 },
+  routeTop: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+  routeTitle: { fontSize: 16, fontWeight: '800', flex: 1 },
+  routeSub: { fontSize: 12 },
+
+  addRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
+  addBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 14,
+    borderWidth: 1.5,
+  },
+  addBtnTop: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 3 },
+  addBtnTitle: { fontSize: 13, fontWeight: '800' },
+  addBtnPrice: { fontSize: 13, fontWeight: '900' },
+
+  passengerCard: { padding: 16, borderRadius: 18, borderWidth: 1, marginBottom: 12 },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, gap: 8 },
+  badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 },
+  cardTitle: { fontSize: 14, fontWeight: '800', flex: 1 },
+  trashBtn: { padding: 4 },
+  input: { borderWidth: 1, borderRadius: 12, padding: 12, fontSize: 14, marginBottom: 10 },
+
+  footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 18,
+    borderTopWidth: 1,
+  },
+  totalLabel: { fontSize: 12, fontWeight: '600' },
+  totalValue: { fontSize: 20, fontWeight: '900' },
+  nextBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 18, paddingVertical: 14, borderRadius: 14 },
+  nextBtnText: { fontSize: 15, fontWeight: '800' },
 });
