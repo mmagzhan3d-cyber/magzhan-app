@@ -382,11 +382,7 @@ export async function apiProcessPayment(
     transactionId: `TXN-${data.id}-${Date.now().toString().slice(-6)}`,
   };
 }
-
-// ============================================================
-/// ============================================================
 // 13. QR-КОД ГЕНЕРАЦИЯЛАУ API (Ешқандай сайтқа лақтырмайды, тікелей билет шығады)
-// ============================================================
 export const MY_CUSTOM_API_URL = 'https://dummyjson.com/c/11b0-cd18-4e6c-8fc2';
 
 export interface TicketQrParams {
